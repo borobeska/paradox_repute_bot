@@ -106,7 +106,7 @@ bot.onText(/\/колонки/, (msg) => {
   bot.sendMessage(chatId, response, { parse_mode: 'MarkdownV2' });
 });
 
-// Команда /статус - заменили /status на /статус
+// Команда /статус
 bot.onText(/\/статус (.+)/, async (msg, match) => {
   const chatId = msg.chat.id;
   const name = match[1];
@@ -156,7 +156,7 @@ bot.onText(/\/статус (.+)/, async (msg, match) => {
   }
 });
 
-// Команда /изменить
+// КОМАНДА /ИЗМЕНИТЬ - ИСПРАВЛЕННАЯ ВЕРСИЯ
 bot.onText(/\/изменить (.+) (.+) (.+)/, async (msg, match) => {
   const chatId = msg.chat.id;
   const name = match[1];
@@ -164,16 +164,18 @@ bot.onText(/\/изменить (.+) (.+) (.+)/, async (msg, match) => {
   const value = parseInt(match[3]);
 
   try {
+    console.log(`🔄 Обработка команды /изменить: ${name}, ${faction}, ${value}`);
+    
     // Проверяем значение
     if (isNaN(value) || value < -5 || value > 5) {
-      bot.sendMessage(chatId, '❌ Значение должно быть числом от \\-5 до 5', { parse_mode: 'MarkdownV2' });
+      await bot.sendMessage(chatId, '❌ Значение должно быть числом от \\-5 до 5', { parse_mode: 'MarkdownV2' });
       return;
     }
 
     // Проверяем фракцию
     const validFactions = ['Бармен', 'Сидор', 'Ученые', 'ДОЛГ', 'Бандиты', 'Военные', 'Монолит'];
     if (!validFactions.includes(faction)) {
-      bot.sendMessage(chatId, 
+      await bot.sendMessage(chatId, 
         `❌ Неверное название фракции\\. Доступные фракции: ${validFactions.join(', ')}\\. Используйте /колонки для просмотра`, 
         { parse_mode: 'MarkdownV2' }
       );
@@ -183,7 +185,7 @@ bot.onText(/\/изменить (.+) (.+) (.+)/, async (msg, match) => {
     if (!doc) {
       const initialized = await initializeGoogleSheet();
       if (!initialized) {
-        bot.sendMessage(chatId, '❌ Ошибка подключения к таблице', { parse_mode: 'MarkdownV2' });
+        await bot.sendMessage(chatId, '❌ Ошибка подключения к таблице', { parse_mode: 'MarkdownV2' });
         return;
       }
     }
@@ -196,24 +198,29 @@ bot.onText(/\/изменить (.+) (.+) (.+)/, async (msg, match) => {
     
     if (characterRow) {
       // Обновляем значение
+      console.log(`📝 Обновление данных: ${name} -> ${faction} = ${value}`);
       characterRow[faction] = value;
       await characterRow.save();
       
-      bot.sendMessage(chatId, 
-        `✅ Успешно обновлено\\!\n` +
-        `*${escapeMarkdown(name)}:* ${faction} = ${escapeMarkdown(value.toString())}`,
-        { parse_mode: 'MarkdownV2' }
-      );
+      console.log(`✅ Данные успешно сохранены в таблице`);
+      
+      // Отправляем сообщение об успехе - ПРОСТОЙ ТЕКСТ БЕЗ MARKDOWN
+      const successMessage = `✅ Успешно обновлено!\n${name}: ${faction} = ${value}`;
+      
+      console.log(`📤 Отправка сообщения: ${successMessage}`);
+      await bot.sendMessage(chatId, successMessage);
+      console.log('✅ Сообщение об успехе отправлено');
+      
     } else {
-      bot.sendMessage(chatId, 
+      await bot.sendMessage(chatId, 
         `❌ Персонаж "*${escapeMarkdown(name)}*" не найден\\. Используйте /добавить для создания нового персонажа\\.`, 
         { parse_mode: 'MarkdownV2' }
       );
     }
     
   } catch (error) {
-    console.error('Error in /изменить:', error);
-    bot.sendMessage(chatId, '❌ Ошибка при обновлении данных', { parse_mode: 'MarkdownV2' });
+    console.error('❌ Ошибка в /изменить:', error);
+    await bot.sendMessage(chatId, '❌ Ошибка при обновлении данных');
   }
 });
 
@@ -226,7 +233,7 @@ bot.onText(/\/добавить (.+)/, async (msg, match) => {
     if (!doc) {
       const initialized = await initializeGoogleSheet();
       if (!initialized) {
-        bot.sendMessage(chatId, '❌ Ошибка подключения к таблице', { parse_mode: 'MarkdownV2' });
+        await bot.sendMessage(chatId, '❌ Ошибка подключения к таблице', { parse_mode: 'MarkdownV2' });
         return;
       }
     }
@@ -237,7 +244,7 @@ bot.onText(/\/добавить (.+)/, async (msg, match) => {
     // Проверяем, нет ли уже такого имени
     const existingCharacter = rows.find(row => row.Имя && row.Имя.trim() === name);
     if (existingCharacter) {
-      bot.sendMessage(chatId, 
+      await bot.sendMessage(chatId, 
         `❌ Персонаж "*${escapeMarkdown(name)}*" уже существует\\.`, 
         { parse_mode: 'MarkdownV2' }
       );
@@ -256,7 +263,7 @@ bot.onText(/\/добавить (.+)/, async (msg, match) => {
       'Монолит': 0
     });
     
-    bot.sendMessage(chatId, 
+    await bot.sendMessage(chatId, 
       `✅ Новый персонаж "*${escapeMarkdown(name)}*" добавлен в таблицу\\.\n\n` +
       `Теперь вы можете установить значения репутации с помощью команды:\n` +
       `/изменить ${escapeMarkdown(name)} Фракция Значение`,
@@ -265,7 +272,7 @@ bot.onText(/\/добавить (.+)/, async (msg, match) => {
     
   } catch (error) {
     console.error('Error in /добавить:', error);
-    bot.sendMessage(chatId, '❌ Ошибка при добавлении персонажа', { parse_mode: 'MarkdownV2' });
+    await bot.sendMessage(chatId, '❌ Ошибка при добавлении персонажа', { parse_mode: 'MarkdownV2' });
   }
 });
 
@@ -273,8 +280,7 @@ bot.onText(/\/добавить (.+)/, async (msg, match) => {
 bot.on('message', (msg) => {
   if (!msg.text.startsWith('/')) {
     bot.sendMessage(msg.chat.id, 
-      'Отправьте /help для просмотра доступных команд', 
-      { parse_mode: 'MarkdownV2' }
+      'Отправьте /help для просмотра доступных команд'
     );
   }
 });
